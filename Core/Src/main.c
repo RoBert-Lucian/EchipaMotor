@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "motor.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -93,7 +94,8 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-  TIM3->CCR1 = 32000;
+  mot_init();
+  mot_set(16000, MOT_FWD);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -101,7 +103,10 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+	  if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_SET){
+		  mot_toggle_dir();
+		  HAL_Delay(500);
+	  }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
