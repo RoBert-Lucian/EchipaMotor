@@ -21,6 +21,7 @@ void mot_set_dir(int dir);
 void mot_set_pwm(uint16_t pwm);
 void mot_set(uint16_t pwm, int dir);
 void mot_toggle_dir();
+uint32_t mot_get_pos();
 int mot_get_dir(void);
 uint16_t mot_get_pwm(void);
 

@@ -14,12 +14,16 @@
 #define MOT_DIR2_GPIO_PORT GPIOC
 #define MOT_DIR2_GPIO_PIN GPIO_PIN_8
 
-static int mot_dir = MOT_FWD;
-static uint16_t mot_pwm = 0;
+static int mot_dir;
+static uint16_t mot_pwm;
+static uint32_t mot_pos;
+static uint32_t mot_last_sample_time;
 
 void mot_init(void){
 	mot_dir = MOT_FWD;
 	mot_pwm = 0;
+	mot_pos = TIM2->CNT;
+	mot_last_sample_time = HAL_GetTick();
 	mot_set(mot_pwm, mot_dir);
 }
 
@@ -59,6 +63,10 @@ void mot_toggle_dir(){
 		case MOT_BACKWARD: mot_dir = MOT_FORWARD; break;
 	}
 	mot_set_dir(mot_dir);
+}
+
+uint32_t mot_get_pos(){
+	return TIM2->CNT;
 }
 
 int mot_get_dir(void){
