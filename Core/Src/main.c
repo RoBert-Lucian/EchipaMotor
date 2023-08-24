@@ -22,6 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include "motor.h"
 /* USER CODE END Includes */
 
@@ -46,7 +48,7 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+static char printf_buf[256];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,6 +63,92 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void motorParamTest(){
+	uint32_t ctr = 0, lastctr = 0;
+	uint16_t pwm = 0xFFFF;
+	uint16_t pwmStep = 4096;
+	uint32_t timer = 1000;
+	uint32_t timerStep = 1000;
+	mot_set(pwm, MOT_BKD);
+	HAL_Delay(500); // wait for motor to spin up
+
+	while(1){
+		ctr = mot_get_pos();
+
+		if(uwTick > timer){
+		  // HALT DETECT
+		  if(ctr == lastctr){
+			  // LOG HALT
+			  sprintf(printf_buf, "HALT HALT HALT @pwm %u | @%lums\n\rNew pwmStep = %u\n\r", pwm, uwTick, pwmStep);
+			  HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+
+			  // EXIT HALT
+			  int attemptCtr = 0;
+			  while(ctr - lastctr < 2){
+				  attemptCtr++;
+				  pwm += pwmStep;
+				  mot_set(pwm, MOT_BKD);
+				  HAL_Delay(500);
+				  ctr = mot_get_pos();
+
+				  sprintf(printf_buf, "HALT EXIT ATTMPT %d @pwm %u | @%lums\n\r", attemptCtr,  pwm, uwTick);
+				  HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+			  }
+
+			  // MOTOR SPIN-UP TIME
+			  HAL_Delay(2000);
+
+			  // REDUCE PWM STEP
+			  pwmStep /= 2;
+
+			  // DETECT ALG END
+			  if(pwmStep <= 1){
+				  sprintf(printf_buf, "HALT PWM FOUND %u\n\r", pwm);
+				  HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+				  mot_set(0, MOT_BKD);
+				  return;
+			  }
+		  }
+
+		  lastctr = ctr;
+		  timer += timerStep;
+		  pwm -= pwmStep;
+		  mot_set(pwm, MOT_BKD);
+
+		  sprintf(printf_buf, "pos %lu | pwm %u | @%lu\n\r", ctr, pwm, uwTick);
+		  HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+		}
+	}
+}
+
+void motParamBinarySearch(){
+	uint32_t ctr = mot_get_pos(), lastctr = ctr;
+	uint16_t pLow = 0, pHigh = 0xFFFF;
+	uint32_t delay = 1000;
+	uint16_t pwm = (pLow + pHigh) / 2;
+	mot_set(pwm, MOT_BKD);
+	HAL_Delay(delay); // wait for motor to spin up
+
+	while(1){
+		HAL_Delay(delay);
+		ctr = mot_get_pos();
+
+		if(ctr != lastctr) pHigh = pwm;//motor spun up
+		else pLow = pwm; //motor didn't spin up
+
+		if(pLow >= pHigh){
+			sprintf(printf_buf, "Detected pwm %u\n\r", pwm);
+		    HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+		    mot_set(0, MOT_BKD);
+		    return;
+		}
+
+		pwm = (pLow + pHigh) / 2;
+		mot_set(pwm, MOT_BKD);
+		sprintf(printf_buf, "New pwm %u\n\r", pwm);
+		HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+	}
+}
 
 /* USER CODE END 0 */
 
@@ -99,19 +187,16 @@ int main(void)
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
   mot_init();
-  mot_set(32000, MOT_FWD);
-  uint32_t ctr = 0;
+
+  motParamBinarySearch();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_SET){
-		  mot_toggle_dir();
-		  HAL_Delay(500);
-	  }
-	  ctr = mot_get_pos();
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
