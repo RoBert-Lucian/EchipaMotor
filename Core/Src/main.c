@@ -188,14 +188,24 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
   mot_init();
 
-  motParamBinarySearch();
+  mot_set(0xFFFF, MOT_FWD);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+	  // speed measurement
+	  uint32_t timer1 = uwTick + 5;
+	  uint32_t ctr1, ctr2;
+	  while(uwTick != timer1);
+	  ctr1 = mot_get_pos();
+	  timer1 += 100;
+	  while(uwTick != timer1);
+	  ctr2 = mot_get_pos();
+	  int vel = ctr2 - ctr1;
+	  sprintf(printf_buf, "motor velocity %dRPS %dRPM\n\r", vel, vel*60);
+	  HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
 
     /* USER CODE END WHILE */
 
