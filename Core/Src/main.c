@@ -50,6 +50,8 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 static char printf_buf[256];
+static uint32_t overflowCtr = 0;
+static uint32_t angularVelocity = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -193,25 +195,35 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim6);
   mot_init();
 
-  mot_set(16000, MOT_FWD);
+  mot_set(0xFFFF, MOT_BACKWARD);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  // speed measurement
-	  uint32_t timer1 = uwTick + 5;
-	  uint32_t ctr1, ctr2;
-	  while(uwTick != timer1);
-	  ctr1 = mot_get_pos();
-	  timer1 += 100;
-	  while(uwTick != timer1);
-	  ctr2 = mot_get_pos();
-	  int vel = ctr2 - ctr1;
-	  sprintf(printf_buf, "motor velocity %dRPS %dRPM (CTR %lu)\n\r", vel, vel*60, mot_get_pos());
-	  //HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+//	  avg speed measurement
+	static uint32_t lastTimerVal = 1;
+	static uint32_t lastEncoderVal = 0;
+//	uint32_t vel = ((mot_get_pos() - lastEncoderVal)) / (22*(uwTick - lastTimerVal));
+	uint32_t pos = mot_get_pos();
+	uint32_t t = uwTick;
+	uint32_t dP = (pos > lastEncoderVal) ? (pos - lastEncoderVal) : (lastEncoderVal - pos);
+	uint32_t dT = (t - lastTimerVal);
+	uint32_t vel = (dP * 60000) / (dT * 22);
+	lastTimerVal = t;
+	lastEncoderVal = mot_get_pos();
 
+
+	// print instantaneous and avg velocity measurement
+//	sprintf(printf_buf, "avgVelocity(RPM):%lu,insVelocity(RPM):%lu\n", vel, angularVelocity);
+	// print instantaneous velocity measurement
+	sprintf(printf_buf, "insVelocity(RPM):%lu\r\n", angularVelocity);
+	// print avg velocity measurement
+//	sprintf(printf_buf, "avgVelocity(RPM):%lu\r\n", vel);
+
+	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+	HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -511,20 +523,19 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(GPIO_Pin == GPIO_PIN_0){
-		static uint16_t lastTimerReading = 0;
+		static const uint32_t freqConst = 436363636;
+		static uint16_t lastCNT = 0;
+		static uint32_t lastOC = 0;
 
-		uint16_t timerReading = TIM6->CNT;
-		int dt = timerReading - lastTimerReading;
-		lastTimerReading = timerReading;
-
-		sprintf(printf_buf, "%d\r\n", dt);
-		HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+		uint16_t cnt = TIM6->CNT;
+		angularVelocity = freqConst / (cnt - lastCNT + ((overflowCtr - lastOC)<<16));
+		lastCNT = cnt;
+		lastOC = overflowCtr;
 	}
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	sprintf(printf_buf, "underrun\r\n");
-	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
+	overflowCtr++;
 }
 
 /* USER CODE END 4 */
