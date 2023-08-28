@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 #include "motor.h"
 /* USER CODE END Includes */
 
@@ -34,6 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define MOT_ACC_THRESHOLD 2000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,7 +53,8 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 static char printf_buf[256];
 static uint32_t overflowCtr = 0;
-static uint32_t angularVelocity = 0;
+static float angularVelocity = 0;
+static float angularAcceleration = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -195,7 +198,7 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim6);
   mot_init();
 
-  mot_set(0xFFFF, MOT_BACKWARD);
+  mot_set(0xFFFF, MOT_FORWARD);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -205,22 +208,26 @@ int main(void)
 //	  avg speed measurement
 	static uint32_t lastTimerVal = 1;
 	static uint32_t lastEncoderVal = 0;
+	static float vel = 0;
+//	static float lastVel = 0;
 //	uint32_t vel = ((mot_get_pos() - lastEncoderVal)) / (22*(uwTick - lastTimerVal));
 	uint32_t pos = mot_get_pos();
 	uint32_t t = uwTick;
-	uint32_t dP = (pos > lastEncoderVal) ? (pos - lastEncoderVal) : (lastEncoderVal - pos);
+	int32_t dP = (pos - lastEncoderVal);
 	uint32_t dT = (t - lastTimerVal);
-	uint32_t vel = (dP * 60000) / (dT * 22);
+//	lastVel = vel;
+	vel = (dP * 60000) / (dT * 22);
+//	if(fabs(vel - lastVel) > MOT_ACC_THRESHOLD) vel = lastVel;
 	lastTimerVal = t;
 	lastEncoderVal = mot_get_pos();
 
 
 	// print instantaneous and avg velocity measurement
-//	sprintf(printf_buf, "avgVelocity(RPM):%lu,insVelocity(RPM):%lu\n", vel, angularVelocity);
+	sprintf(printf_buf, "avgVelocity(RPM):%f,insVelocity(RPM):%f\n", vel, angularVelocity);
 	// print instantaneous velocity measurement
-	sprintf(printf_buf, "insVelocity(RPM):%lu\r\n", angularVelocity);
+//	sprintf(printf_buf, "insVelocity(RPM):%f\r\n", angularVelocity);
 	// print avg velocity measurement
-//	sprintf(printf_buf, "avgVelocity(RPM):%lu\r\n", vel);
+//	sprintf(printf_buf, "avgVelocity(RPM):%f\r\n", vel);
 
 	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
 	HAL_Delay(10);
@@ -521,17 +528,31 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+  * @brief GPIO External Interrupt Callback Function
+  * @param None
+  * @retval None
+  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	__disable_irq();
+	//Called every time hall sensor 1 is triggered (11 times / rot)
 	if(GPIO_Pin == GPIO_PIN_0){
-		static const uint32_t freqConst = 436363636;
-		static uint16_t lastCNT = 0;
+		static const float velConst = 436363636.3636; // = 1 pulse * 60[s/min] * 80MHz[tick/s] / 11[pulse/ROT] = [RPM*tick]
+		static const float accConst = 1333333; // = 80MHz[tick/s] / 60[pulse/s]
+		static uint32_t lastCNT = 0;
 		static uint32_t lastOC = 0;
+		static float lastV = 0;
 
 		uint16_t cnt = TIM6->CNT;
-		angularVelocity = freqConst / (cnt - lastCNT + ((overflowCtr - lastOC)<<16));
+		uint32_t dC = (cnt - lastCNT + ((overflowCtr - lastOC)<<16));
+		lastV = angularVelocity;
+		angularVelocity = velConst / dC; //[RPM]
+		if(angularVelocity > 6000) angularVelocity = lastV;
 		lastCNT = cnt;
 		lastOC = overflowCtr;
+		angularAcceleration = (accConst * (angularVelocity - lastV) / dC); //[RPS2]
 	}
+	__enable_irq();
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
