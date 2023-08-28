@@ -32,4 +32,6 @@ float mot_get_vel(void); // TODO read motor velocity (m/s)
 float mot_get_avg_vel(void); // TODO read average motor vel (m/s)
 float mot_get_acc(void); // TODO read motor acceleration (m/s2)
 
+float mot_get_odometer(void);
+
 #endif /* INC_MOTOR_H_ */

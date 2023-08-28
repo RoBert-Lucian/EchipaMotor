@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := proiet-motor
+BUILD_ARTIFACT_NAME := EchipaMotor
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-proiet-motor.elf \
+EchipaMotor.elf \
 
 MAP_FILES += \
-proiet-motor.map \
+EchipaMotor.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-proiet-motor.list \
+EchipaMotor.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: proiet-motor.elf secondary-outputs
+main-build: EchipaMotor.elf secondary-outputs
 
 # Tool invocations
-proiet-motor.elf proiet-motor.map: $(OBJS) $(USER_OBJS) C:\Users\stancar\OneDrive\ -\ Bertrandt\ AG\Desktop\stancar\course2\workspace\proiet-motor\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "proiet-motor.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\stancar\OneDrive - Bertrandt AG\Desktop\stancar\course2\workspace\proiet-motor\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="proiet-motor.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+EchipaMotor.elf EchipaMotor.map: $(OBJS) $(USER_OBJS) C:\Users\stoeana\OneDrive\ -\ Bertrandt\ AG\Documents\cumvreitu\EchipaMotor\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "EchipaMotor.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\stoeana\OneDrive - Bertrandt AG\Documents\cumvreitu\EchipaMotor\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="EchipaMotor.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-proiet-motor.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "proiet-motor.list"
+EchipaMotor.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "EchipaMotor.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) default.size.stdout proiet-motor.elf proiet-motor.list proiet-motor.map
+	-$(RM) EchipaMotor.elf EchipaMotor.list EchipaMotor.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

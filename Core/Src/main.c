@@ -223,14 +223,15 @@ int main(void)
 
 
 	// print instantaneous and avg velocity measurement
-	sprintf(printf_buf, "avgVelocity(RPM):%f,insVelocity(RPM):%f\n", vel, angularVelocity);
+	//sprintf(printf_buf, "avgVelocity(RPM):%f,insVelocity(RPM):%f\n", vel, angularVelocity);
+	sprintf(printf_buf, "odometer(m):%f\n", mot_get_odometer());
 	// print instantaneous velocity measurement
 //	sprintf(printf_buf, "insVelocity(RPM):%f\r\n", angularVelocity);
 	// print avg velocity measurement
 //	sprintf(printf_buf, "avgVelocity(RPM):%f\r\n", vel);
 
 	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
-	HAL_Delay(10);
+	HAL_Delay(10000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

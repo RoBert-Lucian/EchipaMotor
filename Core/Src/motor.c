@@ -6,6 +6,7 @@
  */
 
 
+#include <math.h>
 #include "motor.h"
 #include "stm32l4xx_hal.h"
 
@@ -18,6 +19,7 @@ static int mot_dir;
 static uint16_t mot_pwm;
 static uint32_t mot_pos;
 static uint32_t mot_last_sample_time;
+static float odometer;
 
 void mot_init(void){
 	mot_dir = MOT_FWD;
@@ -75,4 +77,13 @@ int mot_get_dir(void){
 
 uint16_t mot_get_pwm(void){
 	return mot_pwm;
+}
+
+float mot_get_odometer(void){
+	static uint32_t lastPos = 0;
+	uint32_t pos = mot_get_pos();
+	uint32_t dp = pos>lastPos ? pos - lastPos : lastPos - pos;
+	odometer += (float)dp * 93 / 10000;
+	lastPos = pos;
+	return odometer;
 }
