@@ -55,6 +55,7 @@ static char printf_buf[256];
 static uint32_t overflowCtr = 0;
 static float angularVelocity = 0;
 static float angularAcceleration = 0;
+static uint8_t dir = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -198,7 +199,8 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim6);
   mot_init();
 
-  mot_set(0xFFFF, MOT_FORWARD);
+  //mot_set(0xFFFF, MOT_FORWARD);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -231,12 +233,28 @@ int main(void)
 //	sprintf(printf_buf, "avgVelocity(RPM):%f\r\n", vel);
 
 	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
-	HAL_Delay(10000);
+	//HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == 1)
+	{
+		if(dir == 0)
+				mot_set(0xFFFF, MOT_FORWARD);
+			else if(dir == 1)
+				mot_set(0xFFFF, MOT_STOP);
+			else if(dir == 2)
+				mot_set(0xFFFF, MOT_BACKWARD);
+			else if(dir == 3)
+				mot_set(0xFFFF, MOT_STOP);
+			dir++;
+			if(dir == 4)
+				dir = 0;
+	}
+
+	/* USER CODE END 3 */
   }
-  /* USER CODE END 3 */
+
 }
 
 /**
@@ -515,9 +533,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD4_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PC7 PC8 */
+  /*Configure GPIO pins : PC7 PC8*/
   GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PC13*/
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
@@ -553,6 +578,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 		lastOC = overflowCtr;
 		angularAcceleration = (accConst * (angularVelocity - lastV) / dC); //[RPS2]
 	}
+
 	__enable_irq();
 }
 

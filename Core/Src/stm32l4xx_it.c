@@ -211,7 +211,6 @@ void EXTI0_IRQHandler(void)
 
   /* USER CODE END EXTI0_IRQn 1 */
 }
-
 /**
   * @brief This function handles TIM6 global interrupt, DAC channel1 underrun error interrupt.
   */

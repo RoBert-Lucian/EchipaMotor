@@ -80,10 +80,10 @@ uint16_t mot_get_pwm(void){
 }
 
 float mot_get_odometer(void){
-	static uint32_t lastPos = 0;
-	uint32_t pos = mot_get_pos();
-	uint32_t dp = pos>lastPos ? pos - lastPos : lastPos - pos;
-	odometer += (float)dp * 93 / 10000;
+	static int32_t lastPos = 0;
+	int32_t pos = mot_get_pos();
+	int32_t dp = pos>lastPos ? pos - lastPos : lastPos - pos;
+	odometer += ( (float)dp * 93 / 10000 ) * 0.22;
 	lastPos = pos;
 	return odometer;
 }
