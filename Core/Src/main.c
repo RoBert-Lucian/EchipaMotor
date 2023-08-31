@@ -44,9 +44,12 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+CAN_HandleTypeDef hcan1;
+
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
+TIM_HandleTypeDef htim15;
 
 UART_HandleTypeDef huart2;
 
@@ -65,8 +68,11 @@ static void MX_USART2_UART_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_CAN1_Init(void);
+static void MX_TIM15_Init(void);
 /* USER CODE BEGIN PFP */
-
+void Filter_Configuration(CAN_HandleTypeDef *, uint16_t, uint16_t, uint8_t);
+void CAN_Interrupt_Enabler(CAN_HandleTypeDef *hcan);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -158,6 +164,20 @@ void motParamBinarySearch(){
 	}
 }
 
+float getAvgSpeed(){
+	static uint32_t lastTimerVal = 1;
+	static uint32_t lastEncoderVal = 0;
+	static float vel = 0;
+	uint32_t pos = mot_get_pos();
+	uint32_t t = uwTick;
+	int32_t dP = (pos - lastEncoderVal);
+	uint32_t dT = (t - lastTimerVal);
+	vel = (dP * 60000) / (dT * 22);
+	lastTimerVal = t;
+	lastEncoderVal = mot_get_pos();
+	return vel;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -192,11 +212,16 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM2_Init();
   MX_TIM6_Init();
+  MX_CAN1_Init();
+  MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
-
+  Filter_Configuration(&hcan1, 0x5E6, 0x400, 0x000);
+  CAN_Interrupt_Enabler(&hcan1);
+  if(HAL_CAN_Start(&hcan1) != HAL_OK) Error_Handler();
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
   HAL_TIM_Base_Start_IT(&htim6);
+  HAL_TIM_Base_Start_IT(&htim15);
   mot_init();
 
   //mot_set(0xFFFF, MOT_FORWARD);
@@ -207,54 +232,29 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//	  avg speed measurement
-	static uint32_t lastTimerVal = 1;
-	static uint32_t lastEncoderVal = 0;
-	static float vel = 0;
-//	static float lastVel = 0;
-//	uint32_t vel = ((mot_get_pos() - lastEncoderVal)) / (22*(uwTick - lastTimerVal));
-	uint32_t pos = mot_get_pos();
-	uint32_t t = uwTick;
-	int32_t dP = (pos - lastEncoderVal);
-	uint32_t dT = (t - lastTimerVal);
-//	lastVel = vel;
-	vel = (dP * 60000) / (dT * 22);
-//	if(fabs(vel - lastVel) > MOT_ACC_THRESHOLD) vel = lastVel;
-	lastTimerVal = t;
-	lastEncoderVal = mot_get_pos();
-
-
-	// print instantaneous and avg velocity measurement
-	//sprintf(printf_buf, "avgVelocity(RPM):%f,insVelocity(RPM):%f\n", vel, angularVelocity);
 	sprintf(printf_buf, "odometer(m):%f\n", mot_get_odometer());
-	// print instantaneous velocity measurement
-//	sprintf(printf_buf, "insVelocity(RPM):%f\r\n", angularVelocity);
-	// print avg velocity measurement
-//	sprintf(printf_buf, "avgVelocity(RPM):%f\r\n", vel);
-
 	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
-	//HAL_Delay(10);
-    /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
 	if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == 1)
-	{
-		if(dir == 0)
-				mot_set(0xFFFF, MOT_FORWARD);
-			else if(dir == 1)
-				mot_set(0xFFFF, MOT_STOP);
-			else if(dir == 2)
-				mot_set(0xFFFF, MOT_BACKWARD);
-			else if(dir == 3)
-				mot_set(0xFFFF, MOT_STOP);
-			dir++;
-			if(dir == 4)
-				dir = 0;
-	}
-
-	/* USER CODE END 3 */
+		{
+			if(dir == 0)
+					mot_set(0xFFFF, MOT_FORWARD);
+				else if(dir == 1)
+					mot_set(0xFFFF, MOT_STOP);
+				else if(dir == 2)
+					mot_set(0xFFFF, MOT_BACKWARD);
+				else if(dir == 3)
+					mot_set(0xFFFF, MOT_STOP);
+				dir++;
+				if(dir == 4)
+					dir = 0;
+		}
   }
+  /* USER CODE END WHILE */
 
+  /* USER CODE BEGIN 3 */
+
+  /* USER CODE END 3 */
 }
 
 /**
@@ -304,6 +304,43 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief CAN1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CAN1_Init(void)
+{
+
+  /* USER CODE BEGIN CAN1_Init 0 */
+
+  /* USER CODE END CAN1_Init 0 */
+
+  /* USER CODE BEGIN CAN1_Init 1 */
+
+  /* USER CODE END CAN1_Init 1 */
+  hcan1.Instance = CAN1;
+  hcan1.Init.Prescaler = 10;
+  hcan1.Init.Mode = CAN_MODE_NORMAL;
+  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_13TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
+  hcan1.Init.TimeTriggeredMode = DISABLE;
+  hcan1.Init.AutoBusOff = DISABLE;
+  hcan1.Init.AutoWakeUp = DISABLE;
+  hcan1.Init.AutoRetransmission = DISABLE;
+  hcan1.Init.ReceiveFifoLocked = DISABLE;
+  hcan1.Init.TransmitFifoPriority = DISABLE;
+  if (HAL_CAN_Init(&hcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CAN1_Init 2 */
+
+  /* USER CODE END CAN1_Init 2 */
+
 }
 
 /**
@@ -443,6 +480,52 @@ static void MX_TIM6_Init(void)
 }
 
 /**
+  * @brief TIM15 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM15_Init(void)
+{
+
+  /* USER CODE BEGIN TIM15_Init 0 */
+
+  /* USER CODE END TIM15_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM15_Init 1 */
+
+  /* USER CODE END TIM15_Init 1 */
+  htim15.Instance = TIM15;
+  htim15.Init.Prescaler = 49999;
+  htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim15.Init.Period = 15;
+  htim15.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim15.Init.RepetitionCounter = 0;
+  htim15.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim15) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim15, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim15, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM15_Init 2 */
+
+  /* USER CODE END TIM15_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -533,16 +616,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD4_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PC7 PC8*/
+  /*Configure GPIO pins : PC7 PC8 */
   GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PC13*/
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
@@ -583,9 +659,92 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	overflowCtr++;
+	if(htim == &htim6)
+		overflowCtr++;
+	else if(htim == &htim15){
+		uint32_t TxMailbox;
+	  	CAN_TxHeaderTypeDef TxHeader;
+	  	TxHeader.DLC = 2;
+	  	TxHeader.StdId = 0x064;
+	  	TxHeader.IDE = CAN_ID_STD;
+	  	TxHeader.RTR = CAN_RTR_DATA;
+	    // sending 2 bytes through can, the MSB being the direction bit and the rest of of the bits being the rotations per second bits
+	  	if(HAL_CAN_AddTxMessage(&hcan1,&TxHeader,dir_rpst,&TxMailbox) != HAL_OK)
+	  		Error_Handler();
+	}
 }
 
+void Filter_Configuration(CAN_HandleTypeDef * hcan, uint16_t mask, uint16_t id, uint8_t fifo_number)
+{
+	CAN_FilterTypeDef FilterConfigInit;
+
+	// Allows messages in in the format 0b x1_0 000_ _00_
+
+	FilterConfigInit.FilterIdHigh = id << 5;
+	FilterConfigInit.FilterIdLow  = 0;
+	FilterConfigInit.FilterMaskIdHigh = mask << 5;
+	FilterConfigInit.FilterMaskIdLow = 0;
+	FilterConfigInit.FilterFIFOAssignment =  CAN_FILTER_FIFO0;
+	FilterConfigInit.FilterBank = fifo_number;
+	FilterConfigInit.FilterMode = CAN_FILTERMODE_IDMASK;
+	FilterConfigInit.FilterScale = CAN_FILTERSCALE_32BIT;
+	FilterConfigInit.FilterActivation = CAN_FILTER_ENABLE;
+	FilterConfigInit.SlaveStartFilterBank = 0;
+	if( HAL_CAN_ConfigFilter(hcan, &FilterConfigInit) != HAL_OK)
+		Error_Handler();
+}
+
+
+void CAN_Interrupt_Enabler(CAN_HandleTypeDef * hcan)
+{
+	if( HAL_CAN_ActivateNotification(hcan, CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF) != HAL_OK)
+		Error_Handler();
+}
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+	CAN_RxHeaderTypeDef RxHeader;
+  if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, message) != HAL_OK)
+	  Error_Handler();
+
+  // message with 0x400 id represents the startup sequence
+  if( RxHeader.StdId == 0x400)
+  {
+	  // start the timer peripheral
+	  if(HAL_TIM_Base_Start_IT(&htim6) != HAL_OK)
+		  Error_Handler();
+
+	  // send a fitting message through uart to signify the startup is successful
+	  uint8_t msg[50];
+	  memset(msg,0,sizeof(msg));
+	  sprintf(msg,"Transmission startup successful...\r\n\n");
+	  HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+
+	  // clear the information in the message variable so that you don't read dummy values
+	  memset(message,0,8);
+   }
+
+  else if( RxHeader.StdId == 0x619)
+  {
+	  // send a fitting message through uart to signify the message was successfully sent
+  	  uint8_t msg[50];
+ 	  memset(msg,0,sizeof(msg));
+ 	  sprintf(msg,"Message sent successfully...\r\n\n");
+ 	  HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+  }
+
+  else
+  {
+	  // send a fitting message through uart to signify that the message was sent on the wrong id
+
+	 	  	  uint8_t msg[50];
+	 	  	  memset(msg,0,sizeof(msg));
+	 	  	  sprintf(msg,"Message sent on the wrong ID...\r\n\n");
+	 	  	  HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+  }
+
+
+}
 /* USER CODE END 4 */
 
 /**
