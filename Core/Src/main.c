@@ -662,89 +662,89 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim == &htim6)
 		overflowCtr++;
 	else if(htim == &htim15){
-		uint32_t TxMailbox;
-	  	CAN_TxHeaderTypeDef TxHeader;
-	  	TxHeader.DLC = 2;
-	  	TxHeader.StdId = 0x064;
-	  	TxHeader.IDE = CAN_ID_STD;
-	  	TxHeader.RTR = CAN_RTR_DATA;
-	    // sending 2 bytes through can, the MSB being the direction bit and the rest of of the bits being the rotations per second bits
-	  	if(HAL_CAN_AddTxMessage(&hcan1,&TxHeader,dir_rpst,&TxMailbox) != HAL_OK)
-	  		Error_Handler();
+//		uint32_t TxMailbox;
+//	  	CAN_TxHeaderTypeDef TxHeader;
+//	  	TxHeader.DLC = 2;
+//	  	TxHeader.StdId = 0x064;
+//	  	TxHeader.IDE = CAN_ID_STD;
+//	  	TxHeader.RTR = CAN_RTR_DATA;
+//	    // sending 2 bytes through can, the MSB being the direction bit and the rest of of the bits being the rotations per second bits
+//	  	if(HAL_CAN_AddTxMessage(&hcan1,&TxHeader,dir_rpst,&TxMailbox) != HAL_OK)
+//	  		Error_Handler();
 	}
 }
 
-void Filter_Configuration(CAN_HandleTypeDef * hcan, uint16_t mask, uint16_t id, uint8_t fifo_number)
-{
-	CAN_FilterTypeDef FilterConfigInit;
-
-	// Allows messages in in the format 0b x1_0 000_ _00_
-
-	FilterConfigInit.FilterIdHigh = id << 5;
-	FilterConfigInit.FilterIdLow  = 0;
-	FilterConfigInit.FilterMaskIdHigh = mask << 5;
-	FilterConfigInit.FilterMaskIdLow = 0;
-	FilterConfigInit.FilterFIFOAssignment =  CAN_FILTER_FIFO0;
-	FilterConfigInit.FilterBank = fifo_number;
-	FilterConfigInit.FilterMode = CAN_FILTERMODE_IDMASK;
-	FilterConfigInit.FilterScale = CAN_FILTERSCALE_32BIT;
-	FilterConfigInit.FilterActivation = CAN_FILTER_ENABLE;
-	FilterConfigInit.SlaveStartFilterBank = 0;
-	if( HAL_CAN_ConfigFilter(hcan, &FilterConfigInit) != HAL_OK)
-		Error_Handler();
-}
-
-
-void CAN_Interrupt_Enabler(CAN_HandleTypeDef * hcan)
-{
-	if( HAL_CAN_ActivateNotification(hcan, CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF) != HAL_OK)
-		Error_Handler();
-}
-
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-	CAN_RxHeaderTypeDef RxHeader;
-  if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, message) != HAL_OK)
-	  Error_Handler();
-
-  // message with 0x400 id represents the startup sequence
-  if( RxHeader.StdId == 0x400)
-  {
-	  // start the timer peripheral
-	  if(HAL_TIM_Base_Start_IT(&htim6) != HAL_OK)
-		  Error_Handler();
-
-	  // send a fitting message through uart to signify the startup is successful
-	  uint8_t msg[50];
-	  memset(msg,0,sizeof(msg));
-	  sprintf(msg,"Transmission startup successful...\r\n\n");
-	  HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
-
-	  // clear the information in the message variable so that you don't read dummy values
-	  memset(message,0,8);
-   }
-
-  else if( RxHeader.StdId == 0x619)
-  {
-	  // send a fitting message through uart to signify the message was successfully sent
-  	  uint8_t msg[50];
- 	  memset(msg,0,sizeof(msg));
- 	  sprintf(msg,"Message sent successfully...\r\n\n");
- 	  HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
-  }
-
-  else
-  {
-	  // send a fitting message through uart to signify that the message was sent on the wrong id
-
-	 	  	  uint8_t msg[50];
-	 	  	  memset(msg,0,sizeof(msg));
-	 	  	  sprintf(msg,"Message sent on the wrong ID...\r\n\n");
-	 	  	  HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
-  }
+//void Filter_Configuration(CAN_HandleTypeDef * hcan, uint16_t mask, uint16_t id, uint8_t fifo_number)
+//{
+//	CAN_FilterTypeDef FilterConfigInit;
+//
+//	// Allows messages in in the format 0b x1_0 000_ _00_
+//
+//	FilterConfigInit.FilterIdHigh = id << 5;
+//	FilterConfigInit.FilterIdLow  = 0;
+//	FilterConfigInit.FilterMaskIdHigh = mask << 5;
+//	FilterConfigInit.FilterMaskIdLow = 0;
+//	FilterConfigInit.FilterFIFOAssignment =  CAN_FILTER_FIFO0;
+//	FilterConfigInit.FilterBank = fifo_number;
+//	FilterConfigInit.FilterMode = CAN_FILTERMODE_IDMASK;
+//	FilterConfigInit.FilterScale = CAN_FILTERSCALE_32BIT;
+//	FilterConfigInit.FilterActivation = CAN_FILTER_ENABLE;
+//	FilterConfigInit.SlaveStartFilterBank = 0;
+//	if( HAL_CAN_ConfigFilter(hcan, &FilterConfigInit) != HAL_OK)
+//		Error_Handler();
+//}
 
 
-}
+//void CAN_Interrupt_Enabler(CAN_HandleTypeDef * hcan)
+//{
+//	if( HAL_CAN_ActivateNotification(hcan, CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF) != HAL_OK)
+//		Error_Handler();
+//}
+//
+//void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+//{
+//	CAN_RxHeaderTypeDef RxHeader;
+//  if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, message) != HAL_OK)
+//	  Error_Handler();
+//
+//  // message with 0x400 id represents the startup sequence
+//  if( RxHeader.StdId == 0x400)
+//  {
+//	  // start the timer peripheral
+//	  if(HAL_TIM_Base_Start_IT(&htim6) != HAL_OK)
+//		  Error_Handler();
+//
+//	  // send a fitting message through uart to signify the startup is successful
+//	  uint8_t msg[50];
+//	  memset(msg,0,sizeof(msg));
+//	  sprintf(msg,"Transmission startup successful...\r\n\n");
+//	  HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+//
+//	  // clear the information in the message variable so that you don't read dummy values
+//	  memset(message,0,8);
+//   }
+//
+//  else if( RxHeader.StdId == 0x619)
+//  {
+//	  // send a fitting message through uart to signify the message was successfully sent
+//  	  uint8_t msg[50];
+// 	  memset(msg,0,sizeof(msg));
+// 	  sprintf(msg,"Message sent successfully...\r\n\n");
+// 	  HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+//  }
+//
+//  else
+//  {
+//	  // send a fitting message through uart to signify that the message was sent on the wrong id
+//
+//	 	  	  uint8_t msg[50];
+//	 	  	  memset(msg,0,sizeof(msg));
+//	 	  	  sprintf(msg,"Message sent on the wrong ID...\r\n\n");
+//	 	  	  HAL_UART_Transmit(&huart2, msg, strlen(msg), HAL_MAX_DELAY);
+//  }
+//
+//
+//}
 /* USER CODE END 4 */
 
 /**
