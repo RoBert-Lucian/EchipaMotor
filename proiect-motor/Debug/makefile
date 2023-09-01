@@ -61,7 +61,7 @@ main-build: proiect-motor.elf secondary-outputs
 
 # Tool invocations
 proiect-motor.elf proiect-motor.map: $(OBJS) $(USER_OBJS) C:\Users\stancar\OneDrive\ -\ Bertrandt\ AG\Desktop\Workspace\git\ repo\proiect-motor\STM32F070RBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "proiect-motor.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\stancar\OneDrive - Bertrandt AG\Desktop\Workspace\git repo\proiect-motor\STM32F070RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="proiect-motor.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "proiect-motor.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\stancar\OneDrive - Bertrandt AG\Desktop\Workspace\git repo\proiect-motor\STM32F070RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="proiect-motor.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -1,11 +1,13 @@
 #include <math.h>
 #include "motor.h"
-#include "stm32l4xx_hal.h"
+#include "stm32f0xx_hal.h"
 
-#define MOT_DIR1_GPIO_PORT GPIOC
-#define MOT_DIR1_GPIO_PIN GPIO_PIN_7
+#define ENC_TIM TIM3
+#define PWM_TIM TIM14
+#define MOT_DIR1_GPIO_PORT GPIOB
+#define MOT_DIR1_GPIO_PIN GPIO_PIN_6
 #define MOT_DIR2_GPIO_PORT GPIOC
-#define MOT_DIR2_GPIO_PIN GPIO_PIN_8
+#define MOT_DIR2_GPIO_PIN GPIO_PIN_7
 
 static int mot_dir;
 static uint16_t mot_pwm;
@@ -16,7 +18,7 @@ static float odometer;
 void mot_init(void){
 	mot_dir = MOT_FWD;
 	mot_pwm = 0;
-	mot_pos = TIM2->CNT;
+	mot_pos = ENC_TIM->CNT;
 	mot_last_sample_time = HAL_GetTick();
 	mot_set(mot_pwm, mot_dir);
 }
@@ -42,7 +44,7 @@ void mot_set_dir(int dir){
 }
 
 void mot_set_pwm(uint16_t pwm){
-	TIM3->CCR1 = pwm;
+	PWM_TIM->CCR1 = pwm;
 	mot_pwm = pwm;
 }
 
@@ -60,7 +62,7 @@ void mot_toggle_dir(){
 }
 
 uint32_t mot_get_pos(){
-	return TIM2->CNT;
+	return ENC_TIM->CNT;
 }
 
 int mot_get_dir(void){
