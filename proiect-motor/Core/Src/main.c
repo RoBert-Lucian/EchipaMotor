@@ -118,28 +118,28 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
   // HAL_TIM_Base_Start(&htim6); //TODO: Check
   mot_init();
+  mot_set(0xFFFF, MOT_FORWARD);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1){
-    sprintf(printf_buf, "odometer(m):%f\n", mot_get_odometer());
+    sprintf(printf_buf, "vel:%f\n", angularVelocity);
 	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
 
-	if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == 1)
-		{
-			if(dir == 0)
-					mot_set(0xFFFF, MOT_FORWARD);
-				else if(dir == 1)
-					mot_set(0xFFFF, MOT_STOP);
-				else if(dir == 2)
-					mot_set(0xFFFF, MOT_BACKWARD);
-				else if(dir == 3)
-					mot_set(0xFFFF, MOT_STOP);
-				dir++;
-				if(dir == 4)
-					dir = 0;
-		}
+//	if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == 1){
+//		if(dir == 0)
+//				mot_set(0xFFFF, MOT_FORWARD);
+//			else if(dir == 1)
+//				mot_set(0xFFFF, MOT_STOP);
+//			else if(dir == 2)
+//				mot_set(0xFFFF, MOT_BACKWARD);
+//			else if(dir == 3)
+//				mot_set(0xFFFF, MOT_STOP);
+//			dir++;
+//			if(dir == 4)
+//				dir = 0;
+//	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -480,9 +480,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if(htim == &htim6)
+	if(htim == &htim3)
 		overflowCtr++;
-	else if(htim == &htim15){
+//	else if(htim == &htim15){
 //		uint32_t TxMailbox;
 //	  	CAN_TxHeaderTypeDef TxHeader;
 //	  	TxHeader.DLC = 2;
@@ -492,7 +492,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 //	    // sending 2 bytes through can, the MSB being the direction bit and the rest of of the bits being the rotations per second bits
 //	  	if(HAL_CAN_AddTxMessage(&hcan1,&TxHeader,dir_rpst,&TxMailbox) != HAL_OK)
 //	  		Error_Handler();
-	}
+//	}
 }
 
 /* TODO: check and reimplement
