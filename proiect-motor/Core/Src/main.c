@@ -113,29 +113,29 @@ int main(void)
   HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
   // HAL_TIM_Base_Start(&htim6); //TODO: Check
-  mot_init();
-  mot_set(0xFFFF, MOT_FORWARD);
+  motInit();
+  motSetVelocity(1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1){
-    sprintf(printf_buf, "odom:%f\n", mot_get_odometer());
+    sprintf(printf_buf, "odom:%f\n", motGetOdometer());
 	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
 
 	static uint8_t dir = 0;
 	if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == 0){
 		if(dir == 0)
-				mot_set(0xFFFF, MOT_FORWARD);
-			else if(dir == 1)
-				mot_set(0xFFFF, MOT_STOP);
-			else if(dir == 2)
-				mot_set(0xFFFF, MOT_BACKWARD);
-			else if(dir == 3)
-				mot_set(0xFFFF, MOT_STOP);
-			dir++;
-			if(dir == 4)
-				dir = 0;
+			motSetVelocity(1);
+		else if(dir == 1)
+			motSetVelocity(0);
+		else if(dir == 2)
+			motSetVelocity(-1);
+		else if(dir == 3)
+			motSetVelocity(0);
+		dir++;
+		if(dir == 4)
+			dir = 0;
 		HAL_Delay(500);
 	}
     /* USER CODE END WHILE */
@@ -479,7 +479,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim->Instance == MOT_ENC_TIM)
-		mot_enc_tim_PeriodElapsedCallback(htim);
+		motEncTimPeriodElapsedCallback(htim);
 //	else if(htim == &htim15){
 //		uint32_t TxMailbox;
 //	  	CAN_TxHeaderTypeDef TxHeader;

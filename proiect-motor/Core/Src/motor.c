@@ -1,11 +1,14 @@
+// INCLUDES
 #include <math.h>
 #include "motor.h"
 #include "stm32f0xx_hal.h"
 
-static int mot_dir;
-static uint16_t mot_pwm;
-static uint32_t mot_pos;
-static uint32_t mot_last_sample_time;
+// PRIVATE VARIABLES
+static int dir;
+static float targetVel;
+static uint16_t pwm;
+static uint32_t pos;
+static uint32_t last_sample_time;
 static uint32_t overflowCtr = 0;
 static float odometer;
 #pragma GCC diagnostic push
@@ -14,77 +17,68 @@ static float angularVelocity = 0;
 static float angularAcceleration = 0;
 #pragma GCC diagnostic pop
 
-void mot_init(void){
-	mot_dir = MOT_FWD;
-	mot_pwm = 0;
-	mot_pos = MOT_ENC_TIM->CNT;
-	mot_last_sample_time = HAL_GetTick();
-	mot_set(mot_pwm, mot_dir);
+// PRIVATE FUNCTION PROTOTYPES
+static void motSetPWM(uint16_t);
+static uint32_t motGetPos();
+void motSetDirection(int);
+
+// PUBLIC FUNCTION CODE
+void motInit(void){
+	dir = MOT_FWD;
+	targetVel = 0;
+	pos = MOT_ENC_TIM->CNT;
+	last_sample_time = HAL_GetTick();
+	motSetDirection(dir);
+	motSetVelocity(targetVel);
 }
 
-void mot_set_dir(int dir){
-	switch(dir){
-		case MOT_FORWARD:
-			HAL_GPIO_WritePin(MOT_DIR1_GPIO_PORT, MOT_DIR1_GPIO_PIN, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(MOT_DIR2_GPIO_PORT, MOT_DIR2_GPIO_PIN, GPIO_PIN_SET);
-			mot_dir = dir;
-			break;
-		case MOT_BACKWARD:
-			HAL_GPIO_WritePin(MOT_DIR1_GPIO_PORT, MOT_DIR1_GPIO_PIN, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(MOT_DIR2_GPIO_PORT, MOT_DIR2_GPIO_PIN, GPIO_PIN_RESET);
-			mot_dir = dir;
-			break;
-		case MOT_STOP:
-			HAL_GPIO_WritePin(MOT_DIR1_GPIO_PORT, MOT_DIR1_GPIO_PIN, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(MOT_DIR2_GPIO_PORT, MOT_DIR2_GPIO_PIN, GPIO_PIN_RESET);
-			mot_dir = dir;
-			break;
-	}
-}
-
-void mot_set_pwm(uint16_t pwm){
-	MOT_PWM_TIM->CCR1 = pwm;
-	mot_pwm = pwm;
-}
-
-void mot_set(uint16_t pwm, int dir){
-	mot_set_dir(dir);
-	mot_set_pwm(pwm);
-}
-
-void mot_toggle_dir(){
-	switch(mot_dir){
-		case MOT_FORWARD: mot_dir = MOT_BACKWARD; break;
-		case MOT_BACKWARD: mot_dir = MOT_FORWARD; break;
-	}
-	mot_set_dir(mot_dir);
-}
-
-uint32_t mot_get_pos(){
-	return MOT_ENC_TIM->CNT;
-}
-
-int mot_get_dir(void){
-	return mot_dir;
-}
-
-uint16_t mot_get_pwm(void){
-	return mot_pwm;
-}
-
-float mot_get_vel(void){
-	return 1;
-}
-
-float mot_get_odometer(void){
+float motGetOdometer(void){
 	static int32_t lastPos = 0;
-	int32_t pos = mot_get_pos();
+	int32_t pos = motGetPos();
 	int32_t dp = pos>lastPos ? pos - lastPos : lastPos - pos;
 	odometer += ( (float)dp * 93 / 10000 ) * 0.22;
 	lastPos = pos;
 	return odometer;
 }
 
-void mot_enc_tim_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+float motGetVelocity(void){
+	return -1;
+}
+
+void motSetVelocity(float velocity){
+
+}
+
+void motEncTimPeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	overflowCtr++;
+}
+
+// PRIVATE FUNCTION CODE
+void motSetPWM(uint16_t val){
+	MOT_PWM_TIM->CCR1 = val;
+	pwm = val;
+}
+
+uint32_t motGetPos(){
+	return MOT_ENC_TIM->CNT;
+}
+
+void motSetDirection(int val){
+	switch(val){
+		case MOT_FORWARD:
+			HAL_GPIO_WritePin(MOT_DIR1_GPIO_PORT, MOT_DIR1_GPIO_PIN, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MOT_DIR2_GPIO_PORT, MOT_DIR2_GPIO_PIN, GPIO_PIN_SET);
+			dir = val;
+			break;
+		case MOT_BACKWARD:
+			HAL_GPIO_WritePin(MOT_DIR1_GPIO_PORT, MOT_DIR1_GPIO_PIN, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(MOT_DIR2_GPIO_PORT, MOT_DIR2_GPIO_PIN, GPIO_PIN_RESET);
+			dir = val;
+			break;
+		case MOT_STOP:
+			HAL_GPIO_WritePin(MOT_DIR1_GPIO_PORT, MOT_DIR1_GPIO_PIN, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MOT_DIR2_GPIO_PORT, MOT_DIR2_GPIO_PIN, GPIO_PIN_RESET);
+			dir = val;
+			break;
+	}
 }
