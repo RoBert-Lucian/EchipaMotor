@@ -4,11 +4,10 @@
 #include "stm32f0xx_hal.h"
 
 // PRIVATE VARIABLES
+static int initalised = 0;
 static int dir;
 static float targetVel;
-static uint16_t pwm;
 static uint32_t pos;
-static uint32_t last_sample_time;
 static uint32_t overflowCtr = 0;
 static float odometer;
 #pragma GCC diagnostic push
@@ -18,21 +17,21 @@ static float angularAcceleration = 0;
 #pragma GCC diagnostic pop
 
 // PRIVATE FUNCTION PROTOTYPES
-static void motSetPWM(uint16_t);
 static uint32_t motGetPos();
-void motSetDirection(int);
+static void motSetDirection(int);
+static void Error_Handler(void);
 
 // PUBLIC FUNCTION CODE
-void motInit(void){
-	dir = MOT_FWD;
+void motInit(uint32_t odometer){
+	dir = MOT_FORWARD;
 	targetVel = 0;
 	pos = MOT_ENC_TIM->CNT;
-	last_sample_time = HAL_GetTick();
-	motSetDirection(dir);
+	initalised = 1;
 	motSetVelocity(targetVel);
 }
 
 float motGetOdometer(void){
+	if(!initalised) Error_Handler();
 	static int32_t lastPos = 0;
 	int32_t pos = motGetPos();
 	int32_t dp = pos>lastPos ? pos - lastPos : lastPos - pos;
@@ -42,22 +41,23 @@ float motGetOdometer(void){
 }
 
 float motGetVelocity(void){
+	if(!initalised) Error_Handler();
 	return -1;
 }
 
 void motSetVelocity(float velocity){
-
+	if(!initalised) Error_Handler();
+	if(velocity < 0) motSetDirection(MOT_BACKWARD);
+	else motSetDirection(MOT_FORWARD);
+//	MOT_PWM_TIM->CCR1 = val;
 }
 
 void motEncTimPeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	if(!initalised) return;
 	overflowCtr++;
 }
 
 // PRIVATE FUNCTION CODE
-void motSetPWM(uint16_t val){
-	MOT_PWM_TIM->CCR1 = val;
-	pwm = val;
-}
 
 uint32_t motGetPos(){
 	return MOT_ENC_TIM->CNT;
@@ -81,4 +81,10 @@ void motSetDirection(int val){
 			dir = val;
 			break;
 	}
+}
+
+void Error_Handler(void)
+{
+  __disable_irq();
+  while (1);
 }

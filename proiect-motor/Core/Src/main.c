@@ -113,7 +113,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
   // HAL_TIM_Base_Start(&htim6); //TODO: Check
-  motInit();
+  motInit(0);
   motSetVelocity(1);
   /* USER CODE END 2 */
 

@@ -14,10 +14,8 @@
 #define MOT_FORWARD 1
 #define MOT_STOP 0
 #define MOT_BACKWARD -1
-#define MOT_FWD MOT_FORWARD
-#define MOT_BKD MOT_BACKWARD
 
-void motInit(void);
+void motInit(uint32_t odometer);
 float motGetOdometer(void);
 float motGetVelocity(void);
 void motSetVelocity(float velocity);
