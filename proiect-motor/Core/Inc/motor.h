@@ -1,7 +1,15 @@
 #ifndef INC_MOTOR_H_
 #define INC_MOTOR_H_
 
+#include "stm32f0xx_hal.h"
 #include <stdint.h>
+
+#define MOT_ENC_TIM TIM3
+#define MOT_PWM_TIM TIM14
+#define MOT_DIR1_GPIO_PORT GPIOB
+#define MOT_DIR1_GPIO_PIN GPIO_PIN_6
+#define MOT_DIR2_GPIO_PORT GPIOC
+#define MOT_DIR2_GPIO_PIN GPIO_PIN_7
 
 #define MOT_FORWARD 1
 #define MOT_STOP 0
@@ -26,5 +34,7 @@ float mot_get_avg_vel(void); // TODO read average motor vel (m/s)
 float mot_get_acc(void); // TODO read motor acceleration (m/s2)
 
 float mot_get_odometer(void);
+
+void mot_enc_tim_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 
 #endif /* INC_MOTOR_H_ */

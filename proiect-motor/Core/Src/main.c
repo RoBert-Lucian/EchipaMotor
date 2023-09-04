@@ -53,10 +53,6 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 static char printf_buf[256];
-static uint32_t overflowCtr = 0;
-static float angularVelocity = 0;
-static float angularAcceleration = 0;
-static uint8_t dir = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -124,22 +120,24 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1){
-    sprintf(printf_buf, "vel:%f\n", angularVelocity);
+    sprintf(printf_buf, "odom:%f\n", mot_get_odometer());
 	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
 
-//	if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == 1){
-//		if(dir == 0)
-//				mot_set(0xFFFF, MOT_FORWARD);
-//			else if(dir == 1)
-//				mot_set(0xFFFF, MOT_STOP);
-//			else if(dir == 2)
-//				mot_set(0xFFFF, MOT_BACKWARD);
-//			else if(dir == 3)
-//				mot_set(0xFFFF, MOT_STOP);
-//			dir++;
-//			if(dir == 4)
-//				dir = 0;
-//	}
+	static uint8_t dir = 0;
+	if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == 0){
+		if(dir == 0)
+				mot_set(0xFFFF, MOT_FORWARD);
+			else if(dir == 1)
+				mot_set(0xFFFF, MOT_STOP);
+			else if(dir == 2)
+				mot_set(0xFFFF, MOT_BACKWARD);
+			else if(dir == 3)
+				mot_set(0xFFFF, MOT_STOP);
+			dir++;
+			if(dir == 4)
+				dir = 0;
+		HAL_Delay(500);
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -382,7 +380,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 38400;
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -457,31 +455,31 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	__disable_irq();
+//	__disable_irq();
 	//Called every time hall sensor 1 is triggered (11 times / rot)
-	if(GPIO_Pin == GPIO_PIN_0){
-		static const float velConst = 436363636.3636; // = 1 pulse * 60[s/min] * 80MHz[tick/s] / 11[pulse/ROT] = [RPM*tick]
-		static const float accConst = 1333333; // = 80MHz[tick/s] / 60[pulse/s]
-		static uint32_t lastCNT = 0;
-		static uint32_t lastOC = 0;
-		static float lastV = 0;
+//	if(GPIO_Pin == GPIO_PIN_0){
+//		static const float velConst = 436363636.3636; // = 1 pulse * 60[s/min] * 80MHz[tick/s] / 11[pulse/ROT] = [RPM*tick]
+//		static const float accConst = 1333333; // = 80MHz[tick/s] / 60[pulse/s]
+//		static uint32_t lastCNT = 0;
+//		static uint32_t lastOC = 0;
+//		static float lastV = 0;
+//
+//		uint16_t cnt = TIM6->CNT;
+//		uint32_t dC = (cnt - lastCNT + ((overflowCtr - lastOC)<<16));
+//		lastV = angularVelocity;
+//		angularVelocity = velConst / dC; //[RPM]
+//		if(angularVelocity > 6000) angularVelocity = lastV;
+//		lastCNT = cnt;
+//		lastOC = overflowCtr;
+//		angularAcceleration = (accConst * (angularVelocity - lastV) / dC); //[RPS2]
+//	}
 
-		uint16_t cnt = TIM6->CNT;
-		uint32_t dC = (cnt - lastCNT + ((overflowCtr - lastOC)<<16));
-		lastV = angularVelocity;
-		angularVelocity = velConst / dC; //[RPM]
-		if(angularVelocity > 6000) angularVelocity = lastV;
-		lastCNT = cnt;
-		lastOC = overflowCtr;
-		angularAcceleration = (accConst * (angularVelocity - lastV) / dC); //[RPS2]
-	}
-
-	__enable_irq();
+//	__enable_irq();
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if(htim == &htim3)
-		overflowCtr++;
+	if(htim->Instance == MOT_ENC_TIM)
+		mot_enc_tim_PeriodElapsedCallback(htim);
 //	else if(htim == &htim15){
 //		uint32_t TxMailbox;
 //	  	CAN_TxHeaderTypeDef TxHeader;
