@@ -12,8 +12,11 @@
 // PRIVATE VARIABLES
 static int initalised = 0;
 static float targetVel;
-static int32_t odometerOverflowCtr = 0;
 static uint32_t initialOdometerPulseValue = 0;
+static uint32_t odometerOverflowCtr = 0;
+static uint32_t timekeepingTimerOverflowCtr = 0;
+static uint32_t timekeepingTimerT1 = 0;
+static uint32_t timekeepingTimerT2 = 0;
 
 // PRIVATE FUNCTION PROTOTYPES
 static void motSetDirection(int);
@@ -35,7 +38,11 @@ float motGetOdometer(void){
 
 float motGetVelocity(void){
 	if(!initalised) Error_Handler(MOT_ERR_UNINITIALISED);
-	return -1;
+	uint32_t timerTickCount = timekeepingTimerT2 - timekeepingTimerT1;
+
+//	float vel = (48000000.0) / (timerTickCount * MOT_ODO_PULSES_PER_ROT);
+	float vel = timerTickCount / 48000000.0;
+	return vel;
 }
 
 void motSetVelocity(float velocity){
@@ -53,11 +60,15 @@ void motTimPeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(!initalised) return;
 	if(htim->Instance == MOT_ODO_TIM)
 		odometerOverflowCtr++;
+	else if(htim->Instance == MOT_TIM_TIM)
+		timekeepingTimerOverflowCtr++;
+}
 
-//	if(htim->Instance == MOT_ENC_TIM){
-//		if(htim->Init.CounterMode == TIM_COUNTERMODE_UP) encoderOverflowCtr++;
-//		else encoderOverflowCtr--;
-//	}
+void motGpioExtiCallback(uint16_t GPIO_Pin){
+	if(GPIO_Pin == MOT_INT_PIN){
+		timekeepingTimerT1 = timekeepingTimerT2;
+		timekeepingTimerT2 = (timekeepingTimerOverflowCtr << 16) + MOT_TIM_TIM->CNT;
+	}
 }
 
 // PRIVATE FUNCTION CODE

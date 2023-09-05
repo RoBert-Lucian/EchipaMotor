@@ -8,10 +8,12 @@
 #define MOT_ODO_TIM TIM1
 #define MOT_ENC_TIM TIM3
 #define MOT_PWM_TIM TIM14
+#define MOT_TIM_TIM TIM6
 #define MOT_DIR1_GPIO_PORT GPIOB
 #define MOT_DIR1_GPIO_PIN GPIO_PIN_6
 #define MOT_DIR2_GPIO_PORT GPIOC
 #define MOT_DIR2_GPIO_PIN GPIO_PIN_7
+#define MOT_INT_PIN GPIO_PIN_0
 
 // ERROR CODES
 #define MOT_ERR 0x4D00
@@ -33,5 +35,6 @@ void motSetVelocity(float velocity);
 
 // EXPORTED CALLBACKS
 void motTimPeriodElapsedCallback(TIM_HandleTypeDef *htim);
+void motGpioExtiCallback(uint16_t GPIO_Pin);
 
 #endif /* INC_MOTOR_H_ */
