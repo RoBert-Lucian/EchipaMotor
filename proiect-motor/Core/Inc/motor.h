@@ -9,6 +9,7 @@
 #define MOT_ENC_TIM TIM3
 #define MOT_PWM_TIM TIM14
 #define MOT_TIM_TIM TIM6
+#define MOT_PID_TIM TIM7
 #define MOT_DIR1_GPIO_PORT GPIOB
 #define MOT_DIR1_GPIO_PIN GPIO_PIN_6
 #define MOT_DIR2_GPIO_PORT GPIOC
@@ -31,7 +32,7 @@
 void motInit(uint32_t initialOdometer);
 float motGetOdometer(void);
 float motGetVelocity(void);
-void motSetVelocity(float velocity);
+void motSetTargetVelocity(float velocity);
 
 // EXPORTED CALLBACKS
 void motTimPeriodElapsedCallback(TIM_HandleTypeDef *htim);

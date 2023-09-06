@@ -48,6 +48,7 @@ SPI_HandleTypeDef hspi1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
+TIM_HandleTypeDef htim7;
 TIM_HandleTypeDef htim14;
 
 UART_HandleTypeDef huart2;
@@ -65,6 +66,7 @@ static void MX_TIM3_Init(void);
 static void MX_TIM14_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_TIM7_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -109,39 +111,36 @@ int main(void)
   MX_TIM14_Init();
   MX_TIM1_Init();
   MX_TIM6_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_TIM_Base_Start_IT(&htim6);
+  HAL_TIM_Base_Start_IT(&htim7);
   motInit(0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1){
-    sprintf(printf_buf, "vel(RPM):%f\n", motGetVelocity());
-	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
-
-	static uint8_t dir = 0;
+	static uint8_t x = 0;
 	static uint32_t timer = 0;
+	static float targetVel = 0;
 	if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == 0){
 		if(HAL_GetTick() > timer){
-			if(dir == 0)
-				motSetVelocity(1);
-			else if(dir == 1)
-				motSetVelocity(0);
-			else if(dir == 2)
-				motSetVelocity(-1);
-			else if(dir == 3)
-				motSetVelocity(0);
-			dir++;
-			if(dir == 4)
-				dir = 0;
+			if(x == 0) targetVel = 64000;
+			else if(x == 1) targetVel = 0;
+			else if(x == 2) targetVel = -64000;
+			else if(x == 3) targetVel = 0;
+			motSetTargetVelocity(targetVel);
+			x = (x == 4) ? 0 : x+1;
 			timer = HAL_GetTick() + 500;
 		}
 	}
+    sprintf(printf_buf, "target(RPM:%f,vel(RPM):%f\n", targetVel, motGetVelocity());
+	HAL_UART_Transmit(&huart2, (uint8_t*)printf_buf, strlen(printf_buf), 1000);
 
     /* USER CODE END WHILE */
 
@@ -343,9 +342,9 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 47;
+  htim6.Init.Prescaler = 0;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 9;
+  htim6.Init.Period = 65535;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -354,6 +353,36 @@ static void MX_TIM6_Init(void)
   /* USER CODE BEGIN TIM6_Init 2 */
 
   /* USER CODE END TIM6_Init 2 */
+
+}
+
+/**
+  * @brief TIM7 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM7_Init(void)
+{
+
+  /* USER CODE BEGIN TIM7_Init 0 */
+
+  /* USER CODE END TIM7_Init 0 */
+
+  /* USER CODE BEGIN TIM7_Init 1 */
+
+  /* USER CODE END TIM7_Init 1 */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 479;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 1000;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM7_Init 2 */
+
+  /* USER CODE END TIM7_Init 2 */
 
 }
 
